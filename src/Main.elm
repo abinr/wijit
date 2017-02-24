@@ -7,6 +7,8 @@ import Plot.Line as Line
 import Plot.Axis as Axis
 import Plot.Grid as Grid
 import Plot.Line as Line
+import Plot.Area as Area
+import Plot.Label as Label
 import Svg
 import Svg.Events
 import Table
@@ -57,7 +59,7 @@ casesByFilter =
 
 initialModel : Model
 initialModel =
-    { active = "black"
+    { active = "yellow"
     , plotState = Plot.initialState
     , tableState = Table.initialSort "Oldest"
     , casesByFilter = casesByFilter
@@ -83,16 +85,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         LineToggle ->
-            let
-                color =
-                    case model.active of
-                        "black" ->
-                            "red"
-
-                        _ ->
-                            "black"
-            in
-                ( { model | active = color }, Cmd.none )
+            ( model, Cmd.none )
 
         PlotInteraction interaction ->
             case interaction of
@@ -123,7 +116,7 @@ view : Model -> Html Msg
 view model =
     Html.section []
         [ casesByFilterCard model
-        , Html.map PlotInteraction (viewPlot model)
+        , caseVolumeByStatusCard model
         ]
 
 
@@ -149,38 +142,51 @@ casesByFilterConfig =
         }
 
 
+caseVolumeByStatusCard : Model -> Html Msg
+caseVolumeByStatusCard model =
+    Html.div [ class "card" ]
+        [ Html.div [ class "cardTitle" ] [ text "Case Volume By Status" ]
+        , Html.div [ class "cardBody" ]
+            [ Html.map PlotInteraction (viewPlot model) ]
+        ]
+
+
 viewPlot : Model -> Svg.Svg (Plot.Interaction Msg)
 viewPlot model =
     Plot.plotInteractive
         [ Plot.size ( 580, 325 )
-        , Plot.margin ( 10, 50, 50, 10 )
+        , Plot.margin ( 50, 50, 60, 90 )
         , Plot.domainLowest (always 0)
         , Plot.domainHighest (always 100)
         ]
         [ Plot.verticalGrid
             [ Grid.values [ 6, 12, 18, 24 ]
             , Grid.lines
-                [ Line.stroke "#f9f8f8"
+                [ Line.stroke "#2d2d2d"
                 , Line.strokeWidth 50
                 ]
             ]
         , Plot.horizontalGrid
             [ Grid.values [ 10, 25, 50, 75, 100 ]
             , Grid.lines
-                [ Line.stroke "lightgrey" ]
+                [ Line.stroke "#2d2d2d" ]
             ]
-        , Plot.line
-            [ Line.stroke model.active
-            , Line.strokeWidth 2
-            , Line.customAttrs
+        , Plot.area
+            [ Area.stroke "#ffc600"
+            , Area.strokeWidth 5
+            , Area.fill "#de7d00"
+            , Area.opacity 0.35
+            , Area.customAttrs
                 [ Svg.Events.onMouseOver (Plot.Custom LineToggle)
                 , Svg.Events.onMouseOut (Plot.Custom LineToggle)
                 ]
             ]
             data1
-        , Plot.line
-            [ Line.stroke "grey"
-            , Line.strokeWidth 2
+        , Plot.area
+            [ Area.stroke "blue"
+            , Area.strokeWidth 5
+            , Area.fill "#0075C7"
+            , Area.opacity 0.75
             ]
             data2
         , Plot.xAxis
@@ -189,8 +195,6 @@ viewPlot model =
             ]
         , Plot.yAxis
             [ Axis.labelValues [ 0, 10, 25, 50, 75, 100 ]
-            , Axis.positionHighest
-            , Axis.anchorInside
             ]
         ]
 
@@ -198,32 +202,32 @@ viewPlot model =
 data1 : List ( Float, Float )
 data1 =
     List.indexedMap (,)
-        [ 28
-        , 22
-        , 20
-        , 19
-        , 16
-        , 23
-        , 25
-        , 27
-        , 28
+        [ 59
+        , 47
+        , 46
+        , 49
+        , 49
+        , 39
+        , 48
+        , 47
+        , 48
         , 50
         , 55
         , 50
-        , 25
-        , 14
-        , 12
-        , 14
-        , 25
-        , 35
+        , 45
+        , 44
+        , 42
+        , 54
+        , 45
+        , 45
         , 40
         , 55
         , 65
         , 69
         , 72
         , 45
-        , 33
-        , 21
+        , 43
+        , 41
         , 65
         ]
         |> List.map (\( a, b ) -> ( toFloat a + 1, b ))
@@ -231,10 +235,8 @@ data1 =
 
 data2 : List ( Float, Float )
 data2 =
-    [ ( 1.0, 18.0 )
-    , ( 2.0, 23.0 )
-    , ( 3.0, 25.0 )
-    , ( 4.0, 56.0 )
-    , ( 5.0, 48.0 )
-    , ( 6.0, 28.0 )
-    ]
+    let
+        decrement =
+            flip (-) 10
+    in
+        List.map (Tuple.mapSecond decrement) data1
